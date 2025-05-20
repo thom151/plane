@@ -1,0 +1,3 @@
+﻿  main.cpp
+C:\Users\thomas\Documents\Cpp\plane\main.cpp(168,44): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
+  plane.vcxproj -> C:\Users\thomas\Documents\Cpp\plane\x64\Debug\plane.exe
