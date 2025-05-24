@@ -18,7 +18,7 @@
 
 	const int screenWidth = 800;
 	const int screenHeight = 600;
-	const int slices = 20;
+	const int slices = 10;
 
 	glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 0.3f);
 	glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f); //to be added with cameraPos so that the camera looks at a new point when moved
@@ -32,6 +32,7 @@
 	float lastX = 400, lastY = 300;
 
 	bool firstMouse = true;
+	bool vectorAdd = false;
 
 	//##############================ MAIN ===================###################
 	int main() {
@@ -44,7 +45,7 @@
 		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
 		//we are going to create a windowwwwww
-		GLFWwindow* window = glfwCreateWindow(screenWidth, screenHeight, "LearnOpenGL", NULL, NULL);
+		GLFWwindow* window = glfwCreateWindow(screenWidth, screenHeight, "RICHARD", NULL, NULL);
 		if (window == NULL) {
 			std::cout << "Failed to create GLFW window \n";
 			glfwTerminate();
@@ -72,56 +73,55 @@
 
 		glEnable(GL_DEPTH_TEST);
 
-		//--------------------------- BUFFERS ---------------------------------------------//
-
 
 		//COORDINATE PLANE
-	
-
-	
 		std::vector<glm::vec3> gridLines;
 		float aspect = 1;
-		float pos = -1.0f;
+		float pos = -0.5f;
 		float adder = 0.1f;
 		float edge = 0.5;
-		
+
 
 		for (int i = 0; i <= slices; ++i) {
 			float x = pos;
-	
+
 			//(XY PLANE)
 			//vertical lines
-			gridLines.push_back(glm::vec3(x, 1.0f, 0.0f)); //top point
-			gridLines.push_back(glm::vec3(x, -1.0f, 0.0f)); //bottom point
+			gridLines.push_back(glm::vec3(x, edge, 0.0f)); //top point
+			gridLines.push_back(glm::vec3(x, -edge, 0.0f)); //bottom point
+
 			//horizontal lines
-			gridLines.push_back(glm::vec3(-1.0f, x, 0.0f)); //left point
-			gridLines.push_back(glm::vec3(1.0f,  x, 0.0f)); //right point
+			gridLines.push_back(glm::vec3(-edge, x, 0.0f)); //left point
+			gridLines.push_back(glm::vec3(edge, x, 0.0f)); //right point
 
 			//(XZ PLANE)
 			//vertical lines
-			gridLines.push_back(glm::vec3(x, 0.0f, 1.0f)); //top point
-			gridLines.push_back(glm::vec3(x, 0.0f, -1.0f)); //bottom point
+			gridLines.push_back(glm::vec3(x, 0.0f, edge)); //top point
+			gridLines.push_back(glm::vec3(x, 0.0f, -edge)); //bottom point
 			//horizontal lines
-			gridLines.push_back(glm::vec3(-1.0f, 0.0f, x )); //left point
-			gridLines.push_back(glm::vec3(1.0f, 0.0f, x )); //right point
+			gridLines.push_back(glm::vec3(-edge, 0.0f, x)); //left point
+			gridLines.push_back(glm::vec3(edge, 0.0f, x)); //right point
 
 
 			//(YZ PLANE)
 			//vertical lines
-			gridLines.push_back(glm::vec3(0.0f, 1.0f, x)); //top point
-			gridLines.push_back(glm::vec3(0.0f, -1.0f, x)); //bottom point
+			gridLines.push_back(glm::vec3(0.0f, edge, x)); //top point
+			gridLines.push_back(glm::vec3(0.0f, -edge, x)); //bottom point
+
 			//horizontal lines
-			gridLines.push_back(glm::vec3(0.0f, x , -1.0f)); //left point
-			gridLines.push_back(glm::vec3(0.0f, x , 1.0f)); //right point
+			gridLines.push_back(glm::vec3(0.0f, x, -edge)); //left point
+			gridLines.push_back(glm::vec3(0.0f, x, edge)); //right point
 
 			pos += adder;
 		}
 
+		// populating grid colors
+		std::vector<glm::vec3> gridColor;
+		for (int i = 0; i < gridLines.size(); ++i) {
+			gridColor.push_back(glm::vec3(1.0f, 1.0f, 1.0f));
+		}
 
-	
-	
-
-
+		//--------------------------- BUFFERS ---------------------------------------------//
 		unsigned int VBO; // a storage for vertices NOTE: this is the ID
 		glGenBuffers(1, &VBO); // this creates a n buffers
 
@@ -142,22 +142,70 @@
 		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0); // Connects VBO and shaders too
 		glEnableVertexAttribArray(0);
 
+		unsigned int gridColorVBO;
+		glGenBuffers(1, &gridColorVBO);
+		
+		glBindBuffer(GL_ARRAY_BUFFER, gridColorVBO);
+		glBufferData(GL_ARRAY_BUFFER, gridColor.size() * sizeof(glm::vec3), gridColor.data(), GL_STATIC_DRAW);
 
+		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+		glEnableVertexAttribArray(1);
 		//---------------------------------------------------------------------------------
+
+
+
+		// ##################################  USER DEFINED VECTORS ########################################
+
+		std::vector<glm::vec3> userPoints;
+		std::vector<glm::vec3> arrowVertices = {
+
+			//origin						//second point					
+			glm::vec3(0.0f, 0.0f, 0.0f),   glm::vec3(1.0f/10, 2.0f/10, 3.0f/10), 
+		};
+
+		std::vector<glm::vec3> arrowColor = {
+			//red
+			glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(1.0f, 0.0f, 0.0f)
+		};
+
+
+		unsigned int vecVBO, vecVAO, vecColorVBO;
+		glGenBuffers(1, &vecVBO);
+		glGenBuffers(1, &vecColorVBO);
+
+		glGenVertexArrays(1, &vecVAO);
+		glBindVertexArray(vecVAO);
+
+
+		// binding vector vertices to vecVA0
+		glBindBuffer(GL_ARRAY_BUFFER, vecVBO);
+		glBufferData(GL_ARRAY_BUFFER, arrowVertices.size() * sizeof(glm::vec3), arrowVertices.data(), GL_STATIC_DRAW);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+		glEnableVertexAttribArray(0);
+
+
+		// binding vector colors to vecVAO
+		glBindBuffer(GL_ARRAY_BUFFER, vecColorVBO);
+		glBufferData(GL_ARRAY_BUFFER, arrowColor.size() * sizeof(glm::vec3), arrowColor.data(), GL_STATIC_DRAW);
+		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+		glEnableVertexAttribArray(1);
+
+
+		
+
 		Shader ourShader("shader.vs", "shader.fs");
+
+		// ######################################################################################################
 
 
 		//++++++++++++++ MODEL MATRIX (local -> world space) +++++++++++++++++++++
-		//identity matrix
-		//model matrix
-		//view matrix
-
-		//projection matrix
-
 		glm::mat4 model = glm::mat4(1.0f);
-		model = glm::rotate(model, glm::radians(50.0f), glm::vec3(0.5f, 1.0f, 0.0f));
+		glm::mat4 view = glm::mat4(1.0f);
+		glm::mat4 projection = glm::mat4(1.0f);
 
-		//USING OUR SHADER CLASS
+
+
+
 		//========================= RENDER LOOP ===================================
 		while (!glfwWindowShouldClose(window))
 		{
@@ -172,13 +220,7 @@
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 			ourShader.use(); //ACTIVATE THE PROGRAM == rendering object (use the shaders)
-
 			
-			glm::mat4 view = glm::mat4(1.0f);
-			glm::mat4 projection = glm::mat4(1.0f);
-			
-			
-
 			//CAMERA / VIEW
 			view = glm::lookAt(cameraPos, cameraPos + cameraFront, worldUp);
 			projection = glm::perspective(glm::radians(60.0f), (float)screenWidth / (float)screenHeight, 0.1f, 100.0f);
@@ -190,9 +232,37 @@
 			glBindVertexArray(VAO);
 			glDrawArrays(GL_LINES, 0, gridLines.size());
 
+
+
+			if (vectorAdd) {
+				arrowVertices.push_back(glm::vec3(0.0f, 0.0f, 0.0f));
+				arrowVertices.push_back(glm::vec3(2.0f / 10, 5.0f / 10, 0.0f / 10));
+				arrowColor.push_back(glm::vec3(0.0f, 1.0f, 0.0f));
+				arrowColor.push_back(glm::vec3(0.0f, 1.0f, 0.0f));
+
+				glBindBuffer(GL_ARRAY_BUFFER, vecVBO);
+				glBufferData(GL_ARRAY_BUFFER, arrowVertices.size() * sizeof(glm::vec3), arrowVertices.data(), GL_STATIC_DRAW);
+
+				glBindBuffer(GL_ARRAY_BUFFER, vecColorVBO);
+				glBufferData(GL_ARRAY_BUFFER, arrowColor.size() * sizeof(glm::vec3), arrowColor.data(), GL_STATIC_DRAW);
+			}
+			
+
+			glBindVertexArray(vecVAO);
+			glDrawArrays(GL_LINES, 0, arrowVertices.size());
+
 			glfwSwapBuffers(window); //two buffers, front and back. Back draws and get shown if and only if drawing is ready
 			glfwPollEvents(); /// check for keyboard input or mouse movement
+
+			
+
+	
 		}
+
+		glDeleteVertexArrays(1, &VAO);
+		glDeleteBuffers(1, &VBO);
+		glDeleteVertexArrays(1, &vecVAO);
+		glDeleteBuffers(1, &vecVBO);
 
 
 		glfwTerminate();
@@ -232,6 +302,13 @@
 
 		if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
 			cameraPos += glm::normalize(glm::cross(cameraFront, worldUp)) * movementSpeed;
+		}
+
+		if (glfwGetKey(window, GLFW_KEY_V) == GLFW_PRESS) {
+			vectorAdd = true;
+		}
+		else {
+			vectorAdd = false;
 		}
 	}
 
