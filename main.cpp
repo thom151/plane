@@ -1,24 +1,39 @@
-	#include <glad/glad.h>
-	#include <GLFW/glfw3.h>
-	#include <iostream>
-
-	#include <glm/glm.hpp>
-	#include <glm/gtc/matrix_transform.hpp>
-	#include <glm/gtc/type_ptr.hpp>
-	#include <vector>
+#include "imgui.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_opengl3.h"
 
 
-	#include "shader.h"
+#include <glad/glad.h>
+#include <GLFW/glfw3.h>
+#include <iostream>
+
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <vector>
+
+
+#include "shader.h"
+
+struct richVector {
+	glm::vec3 vector;
+	glm::vec3 color;
+};
+
 
 	//open gl calls this function when we resize window
 	void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 	void processInput(GLFWwindow* window);
+	richVector getUserVector(std::vector<glm::vec3>& vecs, std::vector<glm::vec3>& vecColors, std::vector<glm::vec3>& arrows, std::vector<glm::vec3>& arrColors);
 	void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 
+	
 
 	const int screenWidth = 800;
 	const int screenHeight = 600;
 	const int slices = 10;
+
+	const int lineWidth = 5;
 
 	glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 0.3f);
 	glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f); //to be added with cameraPos so that the camera looks at a new point when moved
@@ -157,15 +172,11 @@
 		// ##################################  USER DEFINED VECTORS ########################################
 
 		std::vector<glm::vec3> userPoints;
+		std::vector<glm::vec3> userColors;
 		std::vector<glm::vec3> arrowVertices = {
-
-			//origin						//second point					
-			glm::vec3(0.0f, 0.0f, 0.0f),   glm::vec3(1.0f/10, 2.0f/10, 3.0f/10), 
 		};
 
 		std::vector<glm::vec3> arrowColor = {
-			//red
-			glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(1.0f, 0.0f, 0.0f)
 		};
 
 
@@ -205,6 +216,14 @@
 
 
 
+		//IMGUI SETUP
+		IMGUI_CHECKVERSION();
+		ImGui::CreateContext();
+		ImGuiIO& io = ImGui::GetIO(); (void)io;
+		ImGui::StyleColorsDark();
+		ImGui_ImplGlfw_InitForOpenGL(window, true);
+		ImGui_ImplOpenGL3_Init("#version 330");
+
 
 		//========================= RENDER LOOP ===================================
 		while (!glfwWindowShouldClose(window))
@@ -219,37 +238,82 @@
 			glClearColor(0.0f, 0.0f, 0.0f, 1.0f); // opengl will wipe the art desk (window) with this color
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+			//let imgui know we are in a new frame
+			ImGui_ImplOpenGL3_NewFrame();
+			ImGui_ImplGlfw_NewFrame();
+			ImGui::NewFrame();
+
 			ourShader.use(); //ACTIVATE THE PROGRAM == rendering object (use the shaders)
 			
 			//CAMERA / VIEW
 			view = glm::lookAt(cameraPos, cameraPos + cameraFront, worldUp);
+			//projection = glm::ortho(-1.0f, 1.0f, -1.0f, 1.0f, 0.1f, 100.0f); // Left, right, bottom, top, near, far
 			projection = glm::perspective(glm::radians(60.0f), (float)screenWidth / (float)screenHeight, 0.1f, 100.0f);
 
 			ourShader.setMat4("model", model);
 			ourShader.setMat4("view", view);
 			ourShader.setMat4("projection", projection);
-
+			glLineWidth(1.0f);
 			glBindVertexArray(VAO);
 			glDrawArrays(GL_LINES, 0, gridLines.size());
 
 
 
-			if (vectorAdd) {
+			if (glfwGetKey(window, GLFW_KEY_V) == GLFW_PRESS) {
+				getUserVector(userPoints, userColors, arrowVertices, arrowColor);
+
+				
+		
+				glBindBuffer(GL_ARRAY_BUFFER, vecVBO);
+				glBufferData(GL_ARRAY_BUFFER, arrowVertices.size() * sizeof(glm::vec3), arrowVertices.data(), GL_STATIC_DRAW);
+
+				// binding vector colors to vecVAO
+				glBindBuffer(GL_ARRAY_BUFFER, vecColorVBO);
+				glBufferData(GL_ARRAY_BUFFER, arrowColor.size() * sizeof(glm::vec3), arrowColor.data(), GL_STATIC_DRAW);
+
+			}
+
+			if (glfwGetKey(window, GLFW_KEY_EQUAL ) == GLFW_PRESS) {
+				richVector vec1 = getUserVector(userPoints, userColors, arrowVertices, arrowColor);
+				richVector vec2 = getUserVector(userPoints, userColors, arrowVertices, arrowColor);
+
+				glm::vec3 vecSum = vec1.vector + vec2.vector;
+				
+
+				arrowVertices.push_back(vec1.vector);
+				arrowVertices.push_back(vecSum);
+
+				arrowColor.push_back(vec2.color);
+				arrowColor.push_back(vec2.color);
+
+				glm::vec3 colorSum = vec1.color + vec2.color;
+
 				arrowVertices.push_back(glm::vec3(0.0f, 0.0f, 0.0f));
-				arrowVertices.push_back(glm::vec3(2.0f / 10, 5.0f / 10, 0.0f / 10));
-				arrowColor.push_back(glm::vec3(0.0f, 1.0f, 0.0f));
-				arrowColor.push_back(glm::vec3(0.0f, 1.0f, 0.0f));
+				arrowVertices.push_back(vecSum);
+				arrowColor.push_back(colorSum);
+				arrowColor.push_back(colorSum);
 
 				glBindBuffer(GL_ARRAY_BUFFER, vecVBO);
 				glBufferData(GL_ARRAY_BUFFER, arrowVertices.size() * sizeof(glm::vec3), arrowVertices.data(), GL_STATIC_DRAW);
 
+				// binding vector colors to vecVAO
 				glBindBuffer(GL_ARRAY_BUFFER, vecColorVBO);
 				glBufferData(GL_ARRAY_BUFFER, arrowColor.size() * sizeof(glm::vec3), arrowColor.data(), GL_STATIC_DRAW);
 			}
 			
-
+			glLineWidth(lineWidth);
 			glBindVertexArray(vecVAO);
 			glDrawArrays(GL_LINES, 0, arrowVertices.size());
+
+			//creating ui window
+			ImGui::Begin("richard");
+			ImGui::Text("hello world");
+			ImGui::End();
+
+
+			ImGui::Render();
+			ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
 
 			glfwSwapBuffers(window); //two buffers, front and back. Back draws and get shown if and only if drawing is ready
 			glfwPollEvents(); /// check for keyboard input or mouse movement
@@ -258,6 +322,11 @@
 
 	
 		}
+
+
+		ImGui_ImplOpenGL3_Shutdown();
+		ImGui_ImplGlfw_Shutdown();
+		ImGui::DestroyContext();
 
 		glDeleteVertexArrays(1, &VAO);
 		glDeleteBuffers(1, &VBO);
@@ -346,5 +415,43 @@
 		direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch)); // since x = 0, as the mouse move along the x-axis, we want the z-coord to move along the sin curve
 
 		cameraFront = glm::normalize(direction);
+
+	}
+
+	richVector getUserVector(std::vector<glm::vec3>& vecs, std::vector<glm::vec3>& vecColors, std::vector<glm::vec3>& arrows, std::vector<glm::vec3>& arrColors) {
+		float x, y, z;
+		std::cout << "x: ";
+		std::cin >> x;
+		std::cout << "y: ";
+		std::cin >> y;
+		std::cout << "z: ";
+		std::cin >> z;
+
+		glm::vec3 currVec = glm::vec3(x / 10, y / 10, z / 10);
+		vecs.push_back(currVec);
+
+		float r, g, b;
+		std::cout << "red: ";
+		std::cin >> r;
+		std::cout << "green: ";
+		std::cin >> g;
+		std::cout << "blue: ";
+		std::cin >> b;
+		vecColors.push_back(glm::vec3(r, g, b));
+
+		arrows.clear();
+		arrColors.clear();
+		for (size_t i = 0; i < vecs.size(); ++i) {
+			arrows.push_back(glm::vec3(0.0f, 0.0f, 0.0f));
+			arrows.push_back(vecs[i]);
+
+			arrColors.push_back(vecColors[i]);
+			arrColors.push_back(vecColors[i]);
+		}
+	
+		return richVector{
+			currVec,
+			glm::vec3(r, g, b)
+		};
 
 	}
