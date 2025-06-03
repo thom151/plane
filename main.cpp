@@ -21,33 +21,40 @@ struct richVector {
 };
 
 
-	//open gl calls this function when we resize window
-	void framebuffer_size_callback(GLFWwindow* window, int width, int height);
-	void processInput(GLFWwindow* window);
-	richVector getUserVector(std::vector<glm::vec3>& vecs, std::vector<glm::vec3>& vecColors, std::vector<glm::vec3>& arrows, std::vector<glm::vec3>& arrColors);
-	void mouse_callback(GLFWwindow* window, double xpos, double ypos);
+//open gl calls this function when we resize window
+void framebuffer_size_callback(GLFWwindow* window, int width, int height);
+void processInput(GLFWwindow* window);
+richVector getUserVector(std::vector<glm::vec3>& vecs, std::vector<glm::vec3>& vecColors, std::vector<glm::vec3>& arrows, std::vector<glm::vec3>& arrColors);
+void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 
 	
 
-	const int screenWidth = 800;
-	const int screenHeight = 600;
-	const int slices = 10;
+const int screenWidth = 800;
+const int screenHeight = 600;
+const int slices = 10;
 
-	const int lineWidth = 5;
+const int lineWidth = 5;
 
-	glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 0.3f);
-	glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f); //to be added with cameraPos so that the camera looks at a new point when moved
-	glm::vec3 worldUp = glm::vec3(0.0f, 0.1f, 0.0f);
+glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 0.3f);
+glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f); //to be added with cameraPos so that the camera looks at a new point when moved
+glm::vec3 worldUp = glm::vec3(0.0f, 0.1f, 0.0f);
 
-	float dt = 0.0f;
-	float lastFrame = 0.0f;
+const glm::vec3 defaultVec = glm::vec3(0.1f, 0.1f, 0.0f);
+const glm::vec3 defaultCol = glm::vec3(1.0f, 0.0f, 0.0f);
 
-	float yaw = -90.0f;
-	float pitch = 0.0f;
-	float lastX = 400, lastY = 300;
+float dt = 0.0f;
+float lastFrame = 0.0f;
 
-	bool firstMouse = true;
-	bool vectorAdd = false;
+float yaw = -90.0f;
+float pitch = 0.0f;
+float lastX = 400, lastY = 300;
+
+bool firstMouse = true;
+bool vectorAdd = false;
+
+
+bool equalPending = false;
+bool nextNum = true;
 
 	//##############================ MAIN ===================###################
 	int main() {
@@ -83,7 +90,7 @@ struct richVector {
 
 		//let glfw know about the call back function
 		glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 		glfwSetCursorPosCallback(window, mouse_callback);
 
 		glEnable(GL_DEPTH_TEST);
@@ -170,14 +177,19 @@ struct richVector {
 
 
 		// ##################################  USER DEFINED VECTORS ########################################
-
+		
+		//users
 		std::vector<glm::vec3> userPoints;
 		std::vector<glm::vec3> userColors;
-		std::vector<glm::vec3> arrowVertices = {
-		};
 
-		std::vector<glm::vec3> arrowColor = {
-		};
+		//fullCoords
+		std::vector<glm::vec3> arrowVertices;
+		std::vector<glm::vec3> arrowColor;
+
+		//addedVectors
+		std::vector<std::vector<size_t>> calculationList; //size_t -> to store userPoints indices to be added;
+		std::vector<size_t> currCalculation;
+
 
 
 		unsigned int vecVBO, vecVAO, vecColorVBO;
@@ -225,6 +237,11 @@ struct richVector {
 		ImGui_ImplOpenGL3_Init("#version 330");
 
 
+		//BUTTON STATES
+		bool newVecButPressed = false;
+		bool newMatButPressed = false;
+		int vecCount = 0;
+
 		//========================= RENDER LOOP ===================================
 		while (!glfwWindowShouldClose(window))
 		{
@@ -257,21 +274,6 @@ struct richVector {
 			glBindVertexArray(VAO);
 			glDrawArrays(GL_LINES, 0, gridLines.size());
 
-
-
-			if (glfwGetKey(window, GLFW_KEY_V) == GLFW_PRESS) {
-				getUserVector(userPoints, userColors, arrowVertices, arrowColor);
-
-				
-		
-				glBindBuffer(GL_ARRAY_BUFFER, vecVBO);
-				glBufferData(GL_ARRAY_BUFFER, arrowVertices.size() * sizeof(glm::vec3), arrowVertices.data(), GL_STATIC_DRAW);
-
-				// binding vector colors to vecVAO
-				glBindBuffer(GL_ARRAY_BUFFER, vecColorVBO);
-				glBufferData(GL_ARRAY_BUFFER, arrowColor.size() * sizeof(glm::vec3), arrowColor.data(), GL_STATIC_DRAW);
-
-			}
 
 			if (glfwGetKey(window, GLFW_KEY_EQUAL ) == GLFW_PRESS) {
 				richVector vec1 = getUserVector(userPoints, userColors, arrowVertices, arrowColor);
@@ -308,12 +310,118 @@ struct richVector {
 			//creating ui window
 			ImGui::Begin("richard");
 			ImGui::Text("hello world");
+
+			//creating ui window
+
+			//creating a vector
+			if (ImGui::Button("NEW VEC")) {
+
+
+				getUserVector(userPoints, userColors, arrowVertices, arrowColor);
+	
+				glBindBuffer(GL_ARRAY_BUFFER, vecVBO);
+				glBufferData(GL_ARRAY_BUFFER, arrowVertices.size() * sizeof(glm::vec3), arrowVertices.data(), GL_STATIC_DRAW);
+				// binding vector colors to vecVAO
+				glBindBuffer(GL_ARRAY_BUFFER, vecColorVBO);
+				glBufferData(GL_ARRAY_BUFFER, arrowColor.size() * sizeof(glm::vec3), arrowColor.data(), GL_STATIC_DRAW);
+			}
+
+			if (userPoints.size() > 0) {
+				ImGui::Separator();
+				ImGui::BeginChild("VECTOR LIST");
+				for (size_t i = 0; i < userPoints.size(); ++i) {
+					if (!equalPending) {
+						ImGui::Separator();
+					}
+					//if the curr vector is changed
+					float currVec[3] = {userPoints[i].x * 10, userPoints[i].y * 10, userPoints[i].z * 10};
+					if (ImGui::InputFloat3(("Vector " + std::to_string(i + 1)).c_str(), currVec)) {
+						userPoints[i] = glm::vec3(currVec[0] / 10.0f, currVec[1] / 10.0f, currVec[2] / 10.0f);
+
+
+						//if it is in vectorsums
+							//update vector sums
+					}
+
+
+					//if the curr vector color is changed
+					ImGui::SameLine();
+					ImVec4 color = ImVec4(userColors[i].x, userColors[i].y, userColors[i].z, 200.0f / 255.0f);
+					if (ImGui::ColorEdit4(("vec color" + std::to_string(i+1)).c_str(), (float*)&color, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel | ImGuiColorEditFlags_None)) {
+						userColors[i] = glm::vec3(color.x, color.y, color.z);
+					}
+
+
+				
+					for (size_t j = 0; j < currCalculation.size(); ++j) {
+						if (j == i) {
+							ImGui::Text("+");
+						}
+					}
+					
+				}
+				ImGui::EndChild();
+			}
+
+			
+
+
+			ImGui::BeginChild("OPERATIONS");
+			ImGui::Text("BUTTONS: ");
+			if (ImGui::Button("+")) {
+				equalPending = true;
+				//if there are no userPoints
+				if (userPoints.size() < 1) {
+					//ask for two
+				}
+				else {
+					currCalculation.push_back(userPoints.size() - 1);
+				}
+
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("*")) {
+				//multiply them
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("=")) {
+				equalPending = false;
+				currCalculation.push_back(userPoints.size() - 1);
+				calculationList.push_back(currCalculation);
+				currCalculation.clear();
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("c")) {
+				userPoints.clear();
+				userColors.clear();
+			}
+			ImGui::EndChild();
 			ImGui::End();
 
+
+			//CALCULATION WINDOWS AND BUTTONS
+			
 
 			ImGui::Render();
 			ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
+
+			//render the changed 
+			arrowVertices.clear();
+			arrowColor.clear();
+			for (size_t i = 0; i < userPoints.size(); ++i) {
+				arrowVertices.push_back(glm::vec3(0.0f, 0.0f, 0.0f));
+				arrowVertices.push_back(userPoints[i]);
+
+				arrowColor.push_back(userColors[i]);
+				arrowColor.push_back(userColors[i]);
+			}
+			glBindBuffer(GL_ARRAY_BUFFER, vecVBO);
+			glBufferData(GL_ARRAY_BUFFER, arrowVertices.size() * sizeof(glm::vec3), arrowVertices.data(), GL_STATIC_DRAW);
+
+			// binding vector colors to vecVAO
+			glBindBuffer(GL_ARRAY_BUFFER, vecColorVBO);
+			glBufferData(GL_ARRAY_BUFFER, arrowColor.size() * sizeof(glm::vec3), arrowColor.data(), GL_STATIC_DRAW);
 
 			glfwSwapBuffers(window); //two buffers, front and back. Back draws and get shown if and only if drawing is ready
 			glfwPollEvents(); /// check for keyboard input or mouse movement
@@ -382,62 +490,52 @@ struct richVector {
 	}
 
 	void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
-		if (firstMouse)
-		{
+		if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
+			if (firstMouse)
+			{
+				lastX = xpos;
+				lastY = ypos;
+				firstMouse = false;
+			}
+
+			float dx = xpos - lastX;
+			float dy = lastY - ypos; // this will be added to pitch
+
 			lastX = xpos;
 			lastY = ypos;
-			firstMouse = false;
+
+			const float sensitivity = 0.1f;
+
+
+			yaw += dx * sensitivity;
+			pitch += dy * sensitivity;
+
+			if (pitch > 89.0f) {
+				pitch = 89.0f;
+			}
+
+			if (pitch < -89.0f) {
+				pitch = -89.0f;
+			}
+
+			glm::vec3 direction;
+			direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch)); //we want to start at x = 0. since yaw if initailized to -90 cos(90) would be 0 
+			direction.y = sin(glm::radians(pitch));
+			direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch)); // since x = 0, as the mouse move along the x-axis, we want the z-coord to move along the sin curve
+
+			cameraFront = glm::normalize(direction);
 		}
-
-		float dx = xpos - lastX;
-		float dy = lastY - ypos; // this will be added to pitch
-
-		lastX = xpos;
-		lastY = ypos;
-
-		const float sensitivity = 0.1f;
-
-
-		yaw += dx * sensitivity;
-		pitch += dy * sensitivity;
-
-		if (pitch > 89.0f) {
-			pitch = 89.0f;
+		else {
+			lastX = xpos;
+			lastY = ypos;
 		}
-
-		if (pitch < -89.0f) {
-			pitch = -89.0f;
-		}
-
-		glm::vec3 direction;
-		direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch)); //we want to start at x = 0. since yaw if initailized to -90 cos(90) would be 0 
-		direction.y = sin(glm::radians(pitch));
-		direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch)); // since x = 0, as the mouse move along the x-axis, we want the z-coord to move along the sin curve
-
-		cameraFront = glm::normalize(direction);
 
 	}
 
 	richVector getUserVector(std::vector<glm::vec3>& vecs, std::vector<glm::vec3>& vecColors, std::vector<glm::vec3>& arrows, std::vector<glm::vec3>& arrColors) {
-		float x, y, z;
-		std::cout << "x: ";
-		std::cin >> x;
-		std::cout << "y: ";
-		std::cin >> y;
-		std::cout << "z: ";
-		std::cin >> z;
 
-		glm::vec3 currVec = glm::vec3(x / 10, y / 10, z / 10);
-		vecs.push_back(currVec);
-
-		float r, g, b;
-		std::cout << "red: ";
-		std::cin >> r;
-		std::cout << "green: ";
-		std::cin >> g;
-		std::cout << "blue: ";
-		std::cin >> b;
-		vecColors.push_back(glm::vec3(r, g, b));
+		vecs.push_back(defaultVec);
+		vecColors.push_back(defaultCol);
 
 		arrows.clear();
 		arrColors.clear();
@@ -450,8 +548,8 @@ struct richVector {
 		}
 	
 		return richVector{
-			currVec,
-			glm::vec3(r, g, b)
+			defaultVec,
+			defaultCol
 		};
 
 	}
