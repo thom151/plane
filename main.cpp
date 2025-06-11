@@ -14,10 +14,16 @@
 
 
 #include "shader.h"
+#include "gridRenderer.h"
 
 struct richVector {
 	glm::vec3 vector;
 	glm::vec3 color;
+};
+
+struct calcData {
+	std::vector<size_t> indeces;
+	size_t sumIndex;
 };
 
 
@@ -54,7 +60,10 @@ bool vectorAdd = false;
 
 
 bool equalPending = false;
-bool nextNum = true;
+bool expectingNextNum = true;
+
+bool needUpdate = false;
+bool needGridUpdate = false;
 
 	//##############================ MAIN ===================###################
 	int main() {
@@ -97,84 +106,8 @@ bool nextNum = true;
 
 
 		//COORDINATE PLANE
-		std::vector<glm::vec3> gridLines;
-		float aspect = 1;
-		float pos = -0.5f;
-		float adder = 0.1f;
 		float edge = 0.5;
-
-
-		for (int i = 0; i <= slices; ++i) {
-			float x = pos;
-
-			//(XY PLANE)
-			//vertical lines
-			gridLines.push_back(glm::vec3(x, edge, 0.0f)); //top point
-			gridLines.push_back(glm::vec3(x, -edge, 0.0f)); //bottom point
-
-			//horizontal lines
-			gridLines.push_back(glm::vec3(-edge, x, 0.0f)); //left point
-			gridLines.push_back(glm::vec3(edge, x, 0.0f)); //right point
-
-			//(XZ PLANE)
-			//vertical lines
-			gridLines.push_back(glm::vec3(x, 0.0f, edge)); //top point
-			gridLines.push_back(glm::vec3(x, 0.0f, -edge)); //bottom point
-			//horizontal lines
-			gridLines.push_back(glm::vec3(-edge, 0.0f, x)); //left point
-			gridLines.push_back(glm::vec3(edge, 0.0f, x)); //right point
-
-
-			//(YZ PLANE)
-			//vertical lines
-			gridLines.push_back(glm::vec3(0.0f, edge, x)); //top point
-			gridLines.push_back(glm::vec3(0.0f, -edge, x)); //bottom point
-
-			//horizontal lines
-			gridLines.push_back(glm::vec3(0.0f, x, -edge)); //left point
-			gridLines.push_back(glm::vec3(0.0f, x, edge)); //right point
-
-			pos += adder;
-		}
-
-		// populating grid colors
-		std::vector<glm::vec3> gridColor;
-		for (int i = 0; i < gridLines.size(); ++i) {
-			gridColor.push_back(glm::vec3(1.0f, 1.0f, 1.0f));
-		}
-
-		//--------------------------- BUFFERS ---------------------------------------------//
-		unsigned int VBO; // a storage for vertices NOTE: this is the ID
-		glGenBuffers(1, &VBO); // this creates a n buffers
-
-		// VAO ----- a storage box for our VBO
-		unsigned int VAO;
-		glGenVertexArrays(1, &VAO);
-		glBindVertexArray(VAO);
-
-
-		// VAO will then rememver the following:
-		glBindBuffer(GL_ARRAY_BUFFER, VBO); //give array buffer the id && any calls to GL_ARRAY_BUFFER will change VBO
-		// this just copies our vertices to the bound buffer
-		glBufferData(GL_ARRAY_BUFFER, gridLines.size() * sizeof(glm::vec3), gridLines.data(), GL_STATIC_DRAW);
-		 
-		// NOTE:  up to this point OpenGL still doesn't know how to connect our vertices to the vertex shader and how it should interpret data in memory (buffer remember? VB0?)
-
-		//HOW TO INTERPRET DATA:
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0); // Connects VBO and shaders too
-		glEnableVertexAttribArray(0);
-
-		unsigned int gridColorVBO;
-		glGenBuffers(1, &gridColorVBO);
-		
-		glBindBuffer(GL_ARRAY_BUFFER, gridColorVBO);
-		glBufferData(GL_ARRAY_BUFFER, gridColor.size() * sizeof(glm::vec3), gridColor.data(), GL_STATIC_DRAW);
-
-		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-		glEnableVertexAttribArray(1);
-		//---------------------------------------------------------------------------------
-
-
+		GridRenderer grid(slices, edge);
 
 		// ##################################  USER DEFINED VECTORS ########################################
 		
@@ -190,8 +123,10 @@ bool nextNum = true;
 		std::vector<std::vector<size_t>> calculationList; //size_t -> to store userPoints indices to be added;
 		std::vector<size_t> currCalculation;
 
+		calcData currCalculationV2;
 
 
+		// #################################################################################################
 		unsigned int vecVBO, vecVAO, vecColorVBO;
 		glGenBuffers(1, &vecVBO);
 		glGenBuffers(1, &vecColorVBO);
@@ -242,6 +177,10 @@ bool nextNum = true;
 		bool newMatButPressed = false;
 		int vecCount = 0;
 
+
+		bool xzCheck = false;
+		bool yzCheck = false;
+
 		//========================= RENDER LOOP ===================================
 		while (!glfwWindowShouldClose(window))
 		{
@@ -271,8 +210,7 @@ bool nextNum = true;
 			ourShader.setMat4("view", view);
 			ourShader.setMat4("projection", projection);
 			glLineWidth(1.0f);
-			glBindVertexArray(VAO);
-			glDrawArrays(GL_LINES, 0, gridLines.size());
+			grid.draw(ourShader);
 
 
 			if (glfwGetKey(window, GLFW_KEY_EQUAL ) == GLFW_PRESS) {
@@ -310,32 +248,39 @@ bool nextNum = true;
 			//creating ui window
 			ImGui::Begin("richard");
 			ImGui::Text("hello world");
+			
+			if (ImGui::Checkbox("XZ", &xzCheck)) {
+				needGridUpdate = true;
+				grid.enableXZ(xzCheck);
+			};
 
+			
+			if(ImGui::Checkbox("YZ", &yzCheck)) {
+				needGridUpdate = true;
+				grid.enableYZ(yzCheck);
+			};
 			//creating ui window
 
 			//creating a vector
 			if (ImGui::Button("NEW VEC")) {
-
-
-				getUserVector(userPoints, userColors, arrowVertices, arrowColor);
-	
-				glBindBuffer(GL_ARRAY_BUFFER, vecVBO);
-				glBufferData(GL_ARRAY_BUFFER, arrowVertices.size() * sizeof(glm::vec3), arrowVertices.data(), GL_STATIC_DRAW);
-				// binding vector colors to vecVAO
-				glBindBuffer(GL_ARRAY_BUFFER, vecColorVBO);
-				glBufferData(GL_ARRAY_BUFFER, arrowColor.size() * sizeof(glm::vec3), arrowColor.data(), GL_STATIC_DRAW);
+				needUpdate = true;
+				if (expectingNextNum) {
+					getUserVector(userPoints, userColors, arrowVertices, arrowColor);
+					if (equalPending)
+						expectingNextNum = false;
+				}
 			}
 
 			if (userPoints.size() > 0) {
 				ImGui::Separator();
 				ImGui::BeginChild("VECTOR LIST");
-				for (size_t i = 0; i < userPoints.size(); ++i) {
-					if (!equalPending) {
-						ImGui::Separator();
-					}
+				
+				 for (size_t i = 0; i < userPoints.size(); ++i) {
+					 
 					//if the curr vector is changed
 					float currVec[3] = {userPoints[i].x * 10, userPoints[i].y * 10, userPoints[i].z * 10};
 					if (ImGui::InputFloat3(("Vector " + std::to_string(i + 1)).c_str(), currVec)) {
+						needUpdate = true;
 						userPoints[i] = glm::vec3(currVec[0] / 10.0f, currVec[1] / 10.0f, currVec[2] / 10.0f);
 
 
@@ -348,36 +293,44 @@ bool nextNum = true;
 					ImGui::SameLine();
 					ImVec4 color = ImVec4(userColors[i].x, userColors[i].y, userColors[i].z, 200.0f / 255.0f);
 					if (ImGui::ColorEdit4(("vec color" + std::to_string(i+1)).c_str(), (float*)&color, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel | ImGuiColorEditFlags_None)) {
+						needUpdate = true;
 						userColors[i] = glm::vec3(color.x, color.y, color.z);
 					}
 
-
-				
 					for (size_t j = 0; j < currCalculation.size(); ++j) {
-						if (j == i) {
-							ImGui::Text("+");
-						}
-					}
-					
+						if (currCalculation[j] == i) {
+							if (j == currCalculation.size() - 1)
+								ImGui::Text("=");
+							else
+								ImGui::Text("+");
+							goto skippingSeparator;
+
+						} 
+					}		
+					ImGui::Separator();
+				skippingSeparator:;
 				}
 				ImGui::EndChild();
 			}
+			ImGui::End();
 
-			
-
-
-			ImGui::BeginChild("OPERATIONS");
+			ImGui::Begin("OPERATIONS");
 			ImGui::Text("BUTTONS: ");
 			if (ImGui::Button("+")) {
-				equalPending = true;
-				//if there are no userPoints
-				if (userPoints.size() < 1) {
-					//ask for two
-				}
-				else {
-					currCalculation.push_back(userPoints.size() - 1);
+
+				if (!equalPending) {
+					equalPending = true;
+					expectingNextNum = false;
 				}
 
+				//if there are no userPoints
+				if (userPoints.size() > 0) {
+					if (!expectingNextNum) {
+						currCalculationV2.indeces.push_back(userPoints.size() - 1);
+						currCalculation.push_back(userPoints.size() - 1); //appending the lastest one
+						expectingNextNum = true;
+					}
+				}
 			}
 			ImGui::SameLine();
 			if (ImGui::Button("*")) {
@@ -386,16 +339,22 @@ bool nextNum = true;
 			ImGui::SameLine();
 			if (ImGui::Button("=")) {
 				equalPending = false;
-				currCalculation.push_back(userPoints.size() - 1);
-				calculationList.push_back(currCalculation);
-				currCalculation.clear();
+				currCalculation.push_back(userPoints.size() - 1); //include the last previous vector
+
+				glm::vec3 sum;
+
+				for (int i = 0; i < userPoints.size(); ++i) {
+					std::cout << userPoints[i].x << '\n';
+				}
+
 			}
 			ImGui::SameLine();
 			if (ImGui::Button("c")) {
 				userPoints.clear();
 				userColors.clear();
 			}
-			ImGui::EndChild();
+
+
 			ImGui::End();
 
 
@@ -405,24 +364,34 @@ bool nextNum = true;
 			ImGui::Render();
 			ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
+			if (needUpdate) {
+				//render the changed 
+				arrowVertices.clear();
+				arrowColor.clear();
+				for (size_t i = 0; i < userPoints.size(); ++i) {
+					arrowVertices.push_back(glm::vec3(0.0f, 0.0f, 0.0f));
+					arrowVertices.push_back(userPoints[i]);
 
-			//render the changed 
-			arrowVertices.clear();
-			arrowColor.clear();
-			for (size_t i = 0; i < userPoints.size(); ++i) {
-				arrowVertices.push_back(glm::vec3(0.0f, 0.0f, 0.0f));
-				arrowVertices.push_back(userPoints[i]);
+					arrowColor.push_back(userColors[i]);
+					arrowColor.push_back(userColors[i]);
+				}
+				glBindBuffer(GL_ARRAY_BUFFER, vecVBO);
+				glBufferData(GL_ARRAY_BUFFER, arrowVertices.size() * sizeof(glm::vec3), arrowVertices.data(), GL_STATIC_DRAW);
 
-				arrowColor.push_back(userColors[i]);
-				arrowColor.push_back(userColors[i]);
+				// binding vector colors to vecVAO
+				glBindBuffer(GL_ARRAY_BUFFER, vecColorVBO);
+				glBufferData(GL_ARRAY_BUFFER, arrowColor.size() * sizeof(glm::vec3), arrowColor.data(), GL_STATIC_DRAW);
+
+				needUpdate = false;
 			}
-			glBindBuffer(GL_ARRAY_BUFFER, vecVBO);
-			glBufferData(GL_ARRAY_BUFFER, arrowVertices.size() * sizeof(glm::vec3), arrowVertices.data(), GL_STATIC_DRAW);
 
-			// binding vector colors to vecVAO
-			glBindBuffer(GL_ARRAY_BUFFER, vecColorVBO);
-			glBufferData(GL_ARRAY_BUFFER, arrowColor.size() * sizeof(glm::vec3), arrowColor.data(), GL_STATIC_DRAW);
+			if (needGridUpdate) {
+				grid.draw(ourShader);
+				needGridUpdate = false;
+			}
 
+			
+			
 			glfwSwapBuffers(window); //two buffers, front and back. Back draws and get shown if and only if drawing is ready
 			glfwPollEvents(); /// check for keyboard input or mouse movement
 
@@ -436,8 +405,7 @@ bool nextNum = true;
 		ImGui_ImplGlfw_Shutdown();
 		ImGui::DestroyContext();
 
-		glDeleteVertexArrays(1, &VAO);
-		glDeleteBuffers(1, &VBO);
+
 		glDeleteVertexArrays(1, &vecVAO);
 		glDeleteBuffers(1, &vecVBO);
 
@@ -488,6 +456,9 @@ bool nextNum = true;
 			vectorAdd = false;
 		}
 	}
+
+
+
 
 	void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
 		if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
