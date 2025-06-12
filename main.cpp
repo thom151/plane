@@ -15,6 +15,7 @@
 
 #include "shader.h"
 #include "gridRenderer.h"
+#include "calculator.h"
 
 struct richVector {
 	glm::vec3 vector;
@@ -59,13 +60,23 @@ bool firstMouse = true;
 bool vectorAdd = false;
 
 
-bool equalPending = false;
-bool expectingNextNum = true;
-
 bool needUpdate = false;
 bool needGridUpdate = false;
 
 bool staticMode = true;
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 	//##############================ MAIN ===================###################
 	int main() {
@@ -120,12 +131,6 @@ bool staticMode = true;
 		//fullCoords
 		std::vector<glm::vec3> arrowVertices;
 		std::vector<glm::vec3> arrowColor;
-
-		//addedVectors
-		std::vector<std::vector<size_t>> calculationList; //size_t -> to store userPoints indices to be added;
-		std::vector<size_t> currCalculation;
-
-		calcData currCalculationV2;
 
 
 		// #################################################################################################
@@ -183,6 +188,12 @@ bool staticMode = true;
 		bool xzCheck = false;
 		bool yzCheck = false;
 
+		//=================== CALCULATOR STUFF ====================
+		Calculator calculator{ &userPoints };
+		Calculation currCalculation;
+
+
+
 		//========================= RENDER LOOP ===================================
 		while (!glfwWindowShouldClose(window))
 		{
@@ -196,15 +207,12 @@ bool staticMode = true;
 			glClearColor(0.0f, 0.0f, 0.0f, 1.0f); // opengl will wipe the art desk (window) with this color
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-			//let imgui know we are in a new frame
-			ImGui_ImplOpenGL3_NewFrame();
-			ImGui_ImplGlfw_NewFrame();
-			ImGui::NewFrame();
-
 			ourShader.use(); //ACTIVATE THE PROGRAM == rendering object (use the shaders)
-			
-			//CAMERA / VIEW
 
+			
+			
+			// ================= Coordinates / Transformations =======================
+			//CAMERA / VIEW
 			glm::mat4 model = glm::mat4(1.0f);
 			glm::mat4 view = glm::mat4(1.0f);
 			if (staticMode) {
@@ -231,8 +239,18 @@ bool staticMode = true;
 			glLineWidth(lineWidth);
 			glBindVertexArray(vecVAO);
 			glDrawArrays(GL_LINES, 0, arrowVertices.size());
+			// ==========================================================================
 
-			//creating ui window
+
+
+			
+			//============================= IMGUI ==================================
+			//let imgui know we are in a new frame
+			ImGui_ImplOpenGL3_NewFrame();
+			ImGui_ImplGlfw_NewFrame();
+			ImGui::NewFrame();
+
+			//============ MAIN WINDOWS ===============
 			ImGui::Begin("richard");
 			ImGui::Text("hello world");
 			
@@ -251,11 +269,8 @@ bool staticMode = true;
 			//creating a vector
 			if (ImGui::Button("NEW VEC")) {
 				needUpdate = true;
-				if (expectingNextNum) {
-					getUserVector(userPoints, userColors, arrowVertices, arrowColor);
-					if (equalPending)
-						expectingNextNum = false;
-				}
+				getUserVector(userPoints, userColors, arrowVertices, arrowColor);
+					
 			}
 
 			if (userPoints.size() > 0) {
@@ -269,10 +284,6 @@ bool staticMode = true;
 					if (ImGui::InputFloat3(("Vector " + std::to_string(i + 1)).c_str(), currVec)) {
 						needUpdate = true;
 						userPoints[i] = glm::vec3(currVec[0] / 10.0f, currVec[1] / 10.0f, currVec[2] / 10.0f);
-
-
-						//if it is in vectorsums
-							//update vector sums
 					}
 
 
@@ -283,56 +294,27 @@ bool staticMode = true;
 						needUpdate = true;
 						userColors[i] = glm::vec3(color.x, color.y, color.z);
 					}
-
-					for (size_t j = 0; j < currCalculation.size(); ++j) {
-						if (currCalculation[j] == i) {
-							if (j == currCalculation.size() - 1)
-								ImGui::Text("=");
-							else
-								ImGui::Text("+");
-							goto skippingSeparator;
-
-						} 
-					}		
+				
 					ImGui::Separator();
-				skippingSeparator:;
 				}
 				ImGui::EndChild();
 			}
 			ImGui::End();
+			//==========================================================
 
+			// ==== IMGUI OPERATIONS =====
 			ImGui::Begin("OPERATIONS");
 			ImGui::Text("BUTTONS: ");
 			if (ImGui::Button("+")) {
-
-				if (!equalPending) {
-					equalPending = true;
-					expectingNextNum = false;
-				}
-
-				//if there are no userPoints
-				if (userPoints.size() > 0) {
-					if (!expectingNextNum) {
-						currCalculationV2.indeces.push_back(userPoints.size() - 1);
-						currCalculation.push_back(userPoints.size() - 1); //appending the lastest one
-						expectingNextNum = true;
-					}
-				}
+				std::cout << "add clicked\n";
 			}
 			ImGui::SameLine();
 			if (ImGui::Button("*")) {
-				//multiply them
+				std::cout << "multiply\n";
 			}
 			ImGui::SameLine();
 			if (ImGui::Button("=")) {
-				equalPending = false;
-				currCalculation.push_back(userPoints.size() - 1); //include the last previous vector
-
-				glm::vec3 sum;
-
-				for (int i = 0; i < userPoints.size(); ++i) {
-					std::cout << userPoints[i].x << '\n';
-				}
+				std::cout << "equal\n";
 
 			}
 			ImGui::SameLine();
@@ -340,17 +322,17 @@ bool staticMode = true;
 				userPoints.clear();
 				userColors.clear();
 			}
-
-
 			ImGui::End();
-
-
-			//CALCULATION WINDOWS AND BUTTONS
+			//==================================
 			
 
 			ImGui::Render();
 			ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+			//===============================================================================================================
 
+
+
+			// ===== Update Drawings =============
 			if (needUpdate) {
 				//render the changed 
 				arrowVertices.clear();
@@ -377,15 +359,14 @@ bool staticMode = true;
 				needGridUpdate = false;
 			}
 
+			//====================================
 			
 			
 			glfwSwapBuffers(window); //two buffers, front and back. Back draws and get shown if and only if drawing is ready
 			glfwPollEvents(); /// check for keyboard input or mouse movement
-
-			
-
 	
 		}
+		//============= RENDER LOOP END ==========================
 
 
 		ImGui_ImplOpenGL3_Shutdown();
@@ -400,6 +381,38 @@ bool staticMode = true;
 		glfwTerminate();
 		return 0;
 	}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -468,13 +481,7 @@ bool staticMode = true;
 			yaw += dx * sensitivity;
 			pitch += dy * sensitivity;
 
-			if (pitch > 89.0f) {
-				pitch = 89.0f;
-			}
 
-			if (pitch < -89.0f) {
-				pitch = -89.0f;
-			}
 
 			glm::vec3 direction;
 			direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch)); //we want to start at x = 0. since yaw if initailized to -90 cos(90) would be 0 
