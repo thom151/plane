@@ -65,6 +65,8 @@ bool expectingNextNum = true;
 bool needUpdate = false;
 bool needGridUpdate = false;
 
+bool staticMode = true;
+
 	//##############================ MAIN ===================###################
 	int main() {
 		glfwInit();
@@ -202,7 +204,20 @@ bool needGridUpdate = false;
 			ourShader.use(); //ACTIVATE THE PROGRAM == rendering object (use the shaders)
 			
 			//CAMERA / VIEW
-			view = glm::lookAt(cameraPos, cameraPos + cameraFront, worldUp);
+
+			glm::mat4 model = glm::mat4(1.0f);
+			glm::mat4 view = glm::mat4(1.0f);
+			if (staticMode) {
+				view = glm::translate(view, glm::vec3(0.0f, 0.0f, -1.0f));
+				model = glm::rotate(model, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+				model = glm::rotate(model, glm::radians(yaw), glm::vec3(0.0f, 1.0f, 0.0f));
+				model = glm::rotate(model, -glm::radians(pitch), glm::vec3(1.0f, 0.0f, 0.0f));
+		
+			}
+			else {
+				view = glm::lookAt(cameraPos, cameraPos + cameraFront, worldUp);
+			}
+			
 			//projection = glm::ortho(-1.0f, 1.0f, -1.0f, 1.0f, 0.1f, 100.0f); // Left, right, bottom, top, near, far
 			projection = glm::perspective(glm::radians(60.0f), (float)screenWidth / (float)screenHeight, 0.1f, 100.0f);
 
@@ -213,34 +228,6 @@ bool needGridUpdate = false;
 			grid.draw(ourShader);
 
 
-			if (glfwGetKey(window, GLFW_KEY_EQUAL ) == GLFW_PRESS) {
-				richVector vec1 = getUserVector(userPoints, userColors, arrowVertices, arrowColor);
-				richVector vec2 = getUserVector(userPoints, userColors, arrowVertices, arrowColor);
-
-				glm::vec3 vecSum = vec1.vector + vec2.vector;
-				
-
-				arrowVertices.push_back(vec1.vector);
-				arrowVertices.push_back(vecSum);
-
-				arrowColor.push_back(vec2.color);
-				arrowColor.push_back(vec2.color);
-
-				glm::vec3 colorSum = vec1.color + vec2.color;
-
-				arrowVertices.push_back(glm::vec3(0.0f, 0.0f, 0.0f));
-				arrowVertices.push_back(vecSum);
-				arrowColor.push_back(colorSum);
-				arrowColor.push_back(colorSum);
-
-				glBindBuffer(GL_ARRAY_BUFFER, vecVBO);
-				glBufferData(GL_ARRAY_BUFFER, arrowVertices.size() * sizeof(glm::vec3), arrowVertices.data(), GL_STATIC_DRAW);
-
-				// binding vector colors to vecVAO
-				glBindBuffer(GL_ARRAY_BUFFER, vecColorVBO);
-				glBufferData(GL_ARRAY_BUFFER, arrowColor.size() * sizeof(glm::vec3), arrowColor.data(), GL_STATIC_DRAW);
-			}
-			
 			glLineWidth(lineWidth);
 			glBindVertexArray(vecVAO);
 			glDrawArrays(GL_LINES, 0, arrowVertices.size());
