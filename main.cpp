@@ -63,6 +63,7 @@ bool vectorAdd = false;
 bool needUpdate = false;
 bool needGridUpdate = false;
 bool equalClicked = false;
+bool addModeAndChanged = false;
 bool staticMode = true;
 
 
@@ -285,7 +286,9 @@ bool staticMode = true;
 					if (ImGui::InputFloat3(("Vector " + std::to_string(i + 1)).c_str(), currVec)) {
 						needUpdate = true;
 						userPoints[i] = glm::vec3(currVec[0] / 10.0f, currVec[1] / 10.0f, currVec[2] / 10.0f);
-
+						if (calculator.getAddMode()) {
+							addModeAndChanged = true;
+						}
 
 					}
 
@@ -296,6 +299,9 @@ bool staticMode = true;
 					if (ImGui::ColorEdit4(("vec color" + std::to_string(i+1)).c_str(), (float*)&color, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel | ImGuiColorEditFlags_None)) {
 						needUpdate = true;
 						userColors[i] = glm::vec3(color.x, color.y, color.z);
+						if (calculator.getAddMode()) {
+							addModeAndChanged = true;
+						}
 					}
 
 					if (calculator.getAddMode()) {
@@ -362,10 +368,11 @@ bool staticMode = true;
 					arrowColor.push_back(userColors[i]);
 				}
 
-				if (equalClicked) {
+				if (equalClicked || addModeAndChanged) {
 					calculator.reCalculateCurrent();
 					calculator.arrowVerticesUpdate(arrowVertices, arrowColor);
 					equalClicked = false;
+					addModeAndChanged = false;
 				}
 
 			
