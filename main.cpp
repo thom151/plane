@@ -36,8 +36,8 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 
 	
 
-const int screenWidth = 800;
-const int screenHeight = 600;
+ int screenWidth = 800;
+ int screenHeight = 600;
 const int slices = 10;
 
 const int lineWidth = 5;
@@ -62,7 +62,7 @@ bool vectorAdd = false;
 
 bool needUpdate = false;
 bool needGridUpdate = false;
-
+bool equalClicked = false;
 bool staticMode = true;
 
 
@@ -189,7 +189,7 @@ bool staticMode = true;
 		bool yzCheck = false;
 
 		//=================== CALCULATOR STUFF ====================
-		Calculator calculator{ &userPoints };
+		Calculator calculator{ &userPoints, &userColors };
 		Calculation currCalculation;
 
 
@@ -216,7 +216,7 @@ bool staticMode = true;
 			glm::mat4 model = glm::mat4(1.0f);
 			glm::mat4 view = glm::mat4(1.0f);
 			if (staticMode) {
-				view = glm::translate(view, glm::vec3(0.0f, 0.0f, -1.0f));
+				view = glm::translate(view, glm::vec3(0.0f, 0.0f, -1.5f));
 				model = glm::rotate(model, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 				model = glm::rotate(model, glm::radians(yaw), glm::vec3(0.0f, 1.0f, 0.0f));
 				model = glm::rotate(model, -glm::radians(pitch), glm::vec3(1.0f, 0.0f, 0.0f));
@@ -269,6 +269,7 @@ bool staticMode = true;
 			//creating a vector
 			if (ImGui::Button("NEW VEC")) {
 				needUpdate = true;
+				calculator.appendVecSelected();
 				getUserVector(userPoints, userColors, arrowVertices, arrowColor);
 					
 			}
@@ -278,12 +279,14 @@ bool staticMode = true;
 				ImGui::BeginChild("VECTOR LIST");
 				
 				 for (size_t i = 0; i < userPoints.size(); ++i) {
-					 
+
 					//if the curr vector is changed
 					float currVec[3] = {userPoints[i].x * 10, userPoints[i].y * 10, userPoints[i].z * 10};
 					if (ImGui::InputFloat3(("Vector " + std::to_string(i + 1)).c_str(), currVec)) {
 						needUpdate = true;
 						userPoints[i] = glm::vec3(currVec[0] / 10.0f, currVec[1] / 10.0f, currVec[2] / 10.0f);
+
+
 					}
 
 
@@ -294,11 +297,20 @@ bool staticMode = true;
 						needUpdate = true;
 						userColors[i] = glm::vec3(color.x, color.y, color.z);
 					}
+
+					if (calculator.getAddMode()) {
+						if (ImGui::Checkbox(("Add##" + std::to_string(i + 1)).c_str(), (bool*)&calculator.vectorsSelected[i])) {
+							//it changed
+							if ((bool)calculator.vectorsSelected[i]) {
+								calculator.appendToCurrent(userPoints[i], userColors[i]);
+							}
+						};
+					}
 				
 					ImGui::Separator();
 				}
 				ImGui::EndChild();
-			}
+			}	
 			ImGui::End();
 			//==========================================================
 
@@ -306,6 +318,7 @@ bool staticMode = true;
 			ImGui::Begin("OPERATIONS");
 			ImGui::Text("BUTTONS: ");
 			if (ImGui::Button("+")) {
+				calculator.setAddMode();
 				std::cout << "add clicked\n";
 			}
 			ImGui::SameLine();
@@ -315,10 +328,14 @@ bool staticMode = true;
 			ImGui::SameLine();
 			if (ImGui::Button("=")) {
 				std::cout << "equal\n";
+				needUpdate = true;
+				equalClicked = true;
+				calculator.setCalcFinish();
 
 			}
 			ImGui::SameLine();
 			if (ImGui::Button("c")) {
+				needUpdate = true;
 				userPoints.clear();
 				userColors.clear();
 			}
@@ -344,6 +361,14 @@ bool staticMode = true;
 					arrowColor.push_back(userColors[i]);
 					arrowColor.push_back(userColors[i]);
 				}
+
+				if (equalClicked) {
+					calculator.reCalculateCurrent();
+					calculator.arrowVerticesUpdate(arrowVertices, arrowColor);
+					equalClicked = false;
+				}
+
+			
 				glBindBuffer(GL_ARRAY_BUFFER, vecVBO);
 				glBufferData(GL_ARRAY_BUFFER, arrowVertices.size() * sizeof(glm::vec3), arrowVertices.data(), GL_STATIC_DRAW);
 
@@ -420,7 +445,10 @@ bool staticMode = true;
 	//CALLBACKS
 	void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 	{
+		
 		glViewport(0, 0, width, height);
+		screenWidth = width;
+		screenHeight = height;
 	}
 
 

@@ -86,6 +86,9 @@
     <ClInclude Include="gridRenderer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="calculator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="shader.fs">

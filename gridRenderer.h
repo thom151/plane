@@ -11,6 +11,8 @@ public:
 		: m_edge{ edge }, m_slices{ slices } {
 		generateGrid(slices, edge);
 		setupBuffers();
+
+
 	};
 
 	~GridRenderer() {
@@ -60,6 +62,24 @@ private:
 		gridLines.clear();
 		gridColors.clear();
 
+		//y coordinate
+		gridLines.push_back(glm::vec3(0, edge, 0.0f));
+		gridLines.push_back(glm::vec3(0, -edge, 0.0f));
+		gridColors.push_back(glm::vec3(0.0f, 1.0f, 0.0f));
+		gridColors.push_back(glm::vec3(0.0f, 1.0f, 0.0f));
+
+		//x-coordinate
+		gridLines.push_back(glm::vec3(edge, 0, 0.0f));
+		gridLines.push_back(glm::vec3(-edge, 0, 0.0f));
+		gridColors.push_back(glm::vec3(1.0f, 0.0f, 0.0f));
+		gridColors.push_back(glm::vec3(1.0f, 0.0f, 0.0f));
+
+		//z-coordinate
+		gridLines.push_back(glm::vec3(0.0f, 0.0f, edge)); //top point
+		gridLines.push_back(glm::vec3(0.0f, 0.0f, -edge)); //bottom point
+		gridColors.push_back(glm::vec3(0.0f, 0.0f, 1.0f));
+		gridColors.push_back(glm::vec3(0.0f, 0.0f, 1.0f));
+
 		float pos = -edge;
 		for (int i = 0; i <= slices; ++i) {
 			float x = pos;
@@ -73,9 +93,7 @@ private:
 			gridLines.push_back(glm::vec3(-edge, x, 0.0f)); //left point
 			gridLines.push_back(glm::vec3(edge, x, 0.0f)); //right point
 
-			//(XZ PLANE)
-			gridLines.push_back(glm::vec3(0.0f, 0.0f, edge)); //top point
-			gridLines.push_back(glm::vec3(0.0f, 0.0f, -edge)); //bottom point
+			
 
 
 			if (m_xzEnabled) {
@@ -93,6 +111,9 @@ private:
 		for (size_t i = 0; i < gridLines.size(); ++i) {
 			gridColors.push_back(glm::vec3(1.0f, 1.0f, 1.0f)); // white color for all lines
 		}
+
+		
+
 
 	};
 
