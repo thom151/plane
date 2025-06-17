@@ -123,15 +123,19 @@ bool staticMode = true;
 		float edge = 0.5;
 		GridRenderer grid(slices, edge);
 
-		// ##################################  USER DEFINED VECTORS ########################################
+		// ##################################  USER DEFINED VECTORS & MATRICES ########################################
 		
 		//users
 		std::vector<glm::vec3> userPoints;
 		std::vector<glm::vec3> userColors;
 
+
 		//fullCoords
 		std::vector<glm::vec3> arrowVertices;
 		std::vector<glm::vec3> arrowColor;
+
+		//matrices
+		std::vector<glm::mat3> userMatrices;
 
 
 		// #################################################################################################
@@ -251,21 +255,10 @@ bool staticMode = true;
 			ImGui_ImplGlfw_NewFrame();
 			ImGui::NewFrame();
 
-			//============ MAIN WINDOWS ===============
-			ImGui::Begin("richard");
-			ImGui::Text("hello world");
-			
-			if (ImGui::Checkbox("XZ", &xzCheck)) {
-				needGridUpdate = true;
-				grid.enableXZ(xzCheck);
-			};
 
-			
-			if(ImGui::Checkbox("YZ", &yzCheck)) {
-				needGridUpdate = true;
-				grid.enableYZ(yzCheck);
-			};
-			//creating ui window
+
+			//============ VECTOR WINDOW ===============
+			ImGui::Begin("vectors");
 
 			//creating a vector
 			if (ImGui::Button("NEW VEC")) {
@@ -320,6 +313,34 @@ bool staticMode = true;
 			ImGui::End();
 			//==========================================================
 
+
+
+			//============ MATRIX WINDOW ===============
+			ImGui::Begin("Matrices");
+
+			//Creating matrices
+			if (ImGui::Button("NEW MAT")) {
+				//identity matrix / default
+				userMatrices.push_back(glm::mat3(1.0f));
+			
+			}
+
+			if (!userMatrices.empty()) {
+				for (int i = 0; i < userMatrices.size(); ++i) {
+					glm::mat3 currMat = userMatrices[i];
+
+					float newMatXs[3] = {currMat[0].x, currMat[1].x, currMat[2].x};
+					float newMatYs[3] = {currMat[0].y, currMat[1].y, currMat[2].y};
+					float newMatZs[3] = {currMat[0].z, currMat[1].z, currMat[2].z};
+					ImGui::InputFloat3(("x " + std::to_string(i + 1)).c_str(), newMatXs);
+					ImGui::InputFloat3(("y " + std::to_string(i + 1)).c_str(), newMatYs);
+					ImGui::InputFloat3(("z " + std::to_string(i + 1)).c_str(), newMatZs);
+				}
+			}
+
+			ImGui::End();
+			//==========================================================
+
 			// ==== IMGUI OPERATIONS =====
 			ImGui::Begin("OPERATIONS");
 			ImGui::Text("BUTTONS: ");
@@ -336,7 +357,7 @@ bool staticMode = true;
 				std::cout << "equal\n";
 				needUpdate = true;
 				equalClicked = true;
-				calculator.setCalcFinish();
+				calculator.calcCurrent();
 
 			}
 			ImGui::SameLine();
@@ -345,6 +366,17 @@ bool staticMode = true;
 				userPoints.clear();
 				userColors.clear();
 			}
+
+			if (ImGui::Checkbox("XZ", &xzCheck)) {
+				needGridUpdate = true;
+				grid.enableXZ(xzCheck);
+			};
+
+
+			if (ImGui::Checkbox("YZ", &yzCheck)) {
+				needGridUpdate = true;
+				grid.enableYZ(yzCheck);
+			};
 			ImGui::End();
 			//==================================
 			
@@ -369,7 +401,7 @@ bool staticMode = true;
 				}
 
 				if (equalClicked || addModeAndChanged) {
-					calculator.reCalculateCurrent();
+					calculator.reCalculate();
 					calculator.arrowVerticesUpdate(arrowVertices, arrowColor);
 					equalClicked = false;
 					addModeAndChanged = false;
@@ -553,3 +585,4 @@ bool staticMode = true;
 		};
 
 	}
+
