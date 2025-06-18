@@ -38,6 +38,16 @@ public:
 		updateBuffers();
 	};
 
+	void transform(glm::mat4& matrix) {
+		for (int i = 0; i < gridLines.size(); ++i) {
+			glm::vec4 transformed = matrix * glm::vec4(gridLines[i], 1.0f);
+			gridLines[i] = glm::vec3(transformed);
+		
+		}
+		updateBuffers();
+		std::cout << "successfully transformed\n";
+	}
+
 
 
 private:

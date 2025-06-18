@@ -4,6 +4,7 @@
 #include <glm/glm.hpp>
 #include <vector>
 #include <iostream>
+#include "gridRenderer.h"
 
 enum Operation {
 	ADD,
@@ -15,9 +16,15 @@ struct Calculation {
 	Operation op;
 	std::vector<glm::vec3*> vectors;
 	std::vector<glm::vec3*> vecColors;
-	std::vector<glm::mat3*> matrices;
+	std::vector<glm::mat4*> matrices;
 	glm::vec3 result;
+	glm::mat4 matrixResult;
 };
+
+
+
+
+
 
 class Calculator {
 public:
@@ -26,8 +33,8 @@ public:
 	std::vector<char> matricesSelected;
 
 
-	Calculator(std::vector<glm::vec3>* userPoints, std::vector<glm::vec3>* userColors):
-	m_userPoints {userPoints}, equalPending {false}, addMode{ false }, m_userColors {userColors}
+	Calculator(std::vector<glm::vec3>* userPoints, std::vector<glm::vec3>* userColors, std::vector<glm::mat4>* userMatrices, GridRenderer& grid):
+	m_userPoints {userPoints}, equalPending {false}, addMode{ false }, m_userColors {userColors}, m_userMatrices {userMatrices}, gridToTraslate {grid}
 	{
 		std::cout << "Calculator made\n";
 	}
@@ -38,22 +45,24 @@ public:
 		currentCalculation.vecColors.push_back(&userColor);
 	}
 
-	void clearCurrent() {
-		std::cout << "current";
-		currentCalculation.result = glm::vec3(0.0f, 0.0f, 0.0f);
-		currentCalculation.vectors.clear();
-		currentCalculation.vecColors.clear();
-		currentCalculation.op = NOOP;
-		equalPending = false;
-		addMode = false;
+	void appendMatToCurrent(glm::mat4& userMatrix) {
+		currentCalculation.matrices.push_back(&userMatrix);
 	}
+
+
 
 
 	void appendVecSelected() {
 		vectorsSelected.push_back(false);
 	}
 
+	void appendedMatSelected() {
+		matricesSelected.push_back(false);
+	}
+
+
 	void setAddMode() {
+		clearCurrent();
 		currentCalculation.op = ADD;
 		addMode = true;
 		equalPending = true;
@@ -62,6 +71,11 @@ public:
 	void setAddModeOff() {
 		addMode = false;
 		equalPending = false;
+		resetSelectedBool();
+	}
+
+	bool getAddMode() {
+		return addMode;
 	}
 
 	void calcCurrent() {	
@@ -76,6 +90,16 @@ public:
 			equalPending = false;
 
 		}
+		else if (currentCalculation.op == MULTIPLY) {
+			glm::mat4 result = glm::mat4(1.0f);
+			for (size_t i = 0; i < currentCalculation.matrices.size(); ++i) {
+				result *= *currentCalculation.matrices[i];
+			}
+			currentCalculation.matrixResult = result;
+			calculationList.push_back(currentCalculation);
+			equalPending = false;
+			gridToTraslate.transform(result);
+		}
 	}
 
 	void reCalculate() {
@@ -84,7 +108,7 @@ public:
 			return;
 		}
 
-		for (int n = 0; n < calculationList.size(); ++n) {
+		for (size_t n = 0; n < calculationList.size(); ++n) {
 			if (calculationList[n].op == ADD) {
 				glm::vec3 result = glm::vec3(0.0f);
 				for (size_t i = 0; i < calculationList[n].vectors.size(); ++i) {
@@ -99,10 +123,9 @@ public:
 	}
 
 
-	//getters
-	bool getAddMode() {
-		return addMode;
-	}
+
+
+	
 
 	void arrowVerticesUpdate(std::vector<glm::vec3>& vertices, std::vector<glm::vec3>& colors) {
 		std::cout << "updating arrows\n";
@@ -142,16 +165,58 @@ public:
 	}
 
 
+	//MAT MULTIPLICATION
+	void setMultiplyMode() {
+		clearCurrent();
+		currentCalculation.op = MULTIPLY;
+		multiplyMode = true;
+		equalPending = true;
+	}
 
-	
+	void setMultipleModeOff() {
+		multiplyMode = false;
+		equalPending = false;
+		resetSelectedBool();
+	}
+
+	bool getMultiplyMode() {
+		return multiplyMode;
+	}
+
+
+	void clearCalculationList() {
+		calculationList.clear();
+	}
+
+	Calculation& getCurrCalculation() {
+		return currentCalculation;
+	}
 
 private:
 	std::vector<Calculation> calculationList;
 	bool equalPending;
 	bool addMode;
-	bool matrixMode;
+	bool multiplyMode;
 	Calculation currentCalculation;
 	std::vector<glm::vec3>* m_userPoints;
 	std::vector<glm::vec3>* m_userColors;
+	std::vector<glm::mat4>* m_userMatrices;
+	GridRenderer& gridToTraslate;
+
+	void resetSelectedBool() {
+		for (size_t i = 0; i < vectorsSelected.size(); ++i) {
+			vectorsSelected[i] = false;
+		}
+	}
+
+	void clearCurrent() {
+		std::cout << "current";
+		currentCalculation.result = glm::vec3(0.0f, 0.0f, 0.0f);
+		currentCalculation.vectors.clear();
+		currentCalculation.vecColors.clear();
+		currentCalculation.op = NOOP;
+		equalPending = false;
+		addMode = false;
+	}
 	
 };
