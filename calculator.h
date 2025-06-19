@@ -82,6 +82,7 @@ public:
 		if (currentCalculation.op == ADD) {
 			assert(currentCalculation.vectors.size() > 1);
 			glm::vec3 result = glm::vec3(0.0f);
+			std::cout << "goes here\n";
 			for (size_t i = 0; i < currentCalculation.vectors.size(); ++i) {
 				result += *currentCalculation.vectors[i];
 			}
@@ -118,49 +119,66 @@ public:
 				calculationList[n].result = result;
 				equalPending = false;
 			}
+			else if (calculationList[n].op == MULTIPLY) {
+				glm::mat4 result = glm::mat4(1.0f);
+				for (size_t i = 0; i < calculationList[n].matrices.size(); ++i) {
+					result *= *calculationList[n].matrices[i];
+				}
+				calculationList[n].matrixResult = result;
+				gridToTraslate.transform(result);
+			}
 		}
 		
 	}
 
 
-
+	
 
 	
 
 	void arrowVerticesUpdate(std::vector<glm::vec3>& vertices, std::vector<glm::vec3>& colors) {
-		std::cout << "updating arrows\n";
-			
-		std::vector<glm::vec3*> tempCurrCalc = calculationList[0].vectors;
-		vertices.push_back(glm::vec3(0.0f, 0.0f, 0.0f)); //origin
-		colors.push_back(*calculationList[0].vecColors[0]); //color of first/origin
 
-		glm::vec3 currSum = glm::vec3(0.0f);
-		for (size_t j = 0; j < calculationList[0].vectors.size() - 1; ++j) {
-			
-			
-			//current tip
-			currSum += *tempCurrCalc[j];
-			vertices.push_back(currSum);
-			colors.push_back(*calculationList[0].vecColors[j]);
+		for (size_t calc = 0; calc < calculationList.size(); ++calc) {
+			if (calculationList[calc].op == ADD) {
+				std::cout << "updating arrows\n";
 
-			//tail  
-			vertices.push_back(currSum);
-			colors.push_back(*calculationList[0].vecColors[j + 1]);
-			
+				std::vector<glm::vec3*> tempCurrCalc = calculationList[calc].vectors;
+				vertices.push_back(glm::vec3(0.0f, 0.0f, 0.0f)); //origin
+				colors.push_back(*calculationList[calc].vecColors[0]); //color of first/origin
+
+				glm::vec3 currSum = glm::vec3(0.0f);
+
+				//this would not let me have a add calculation other than the first time so this is a big TODO
+				for (size_t j = 0; j < calculationList[calc].vectors.size() - 1; ++j) {
+
+
+					//current tip
+					currSum += *tempCurrCalc[j];
+					vertices.push_back(currSum);
+					colors.push_back(*calculationList[calc].vecColors[j]);
+
+					//tail  
+					vertices.push_back(currSum);
+					colors.push_back(*calculationList[calc].vecColors[j + 1]);
+
+
+				}
+
+				//then this would be the last tip
+				vertices.push_back(calculationList[calc].result);
+				colors.push_back(*calculationList[calc].vecColors.back());
+
+
+				//from origin to the sum
+				vertices.push_back(glm::vec3(0.0f, 0.0f, 0.0f));
+				vertices.push_back(calculationList[calc].result);
+
+				colors.push_back(glm::vec3(1.0f, 0.0f, 0.0f));
+				colors.push_back(glm::vec3(1.0f, 0.0f, 0.0f));
+			}
 			
 		}
-
-		//then this would be the last tip
-		vertices.push_back(calculationList[0].result);
-		colors.push_back(*calculationList[0].vecColors.back());
-
-
-		//from origin to the sum
-		vertices.push_back(glm::vec3(0.0f, 0.0f, 0.0f));
-		vertices.push_back(calculationList[0].result);
-
-		colors.push_back(glm::vec3(1.0f, 0.0f, 0.0f));
-		colors.push_back(glm::vec3(1.0f, 0.0f, 0.0f));
+		
 		
 	}
 
@@ -217,6 +235,7 @@ private:
 		currentCalculation.op = NOOP;
 		equalPending = false;
 		addMode = false;
+		multiplyMode = false;
 	}
 	
 };

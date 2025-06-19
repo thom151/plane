@@ -64,6 +64,7 @@ bool needUpdate = false;
 bool needGridUpdate = false;
 bool equalClicked = false;
 bool addModeAndChanged = false;
+bool multiplyModeAndChanged = false;
 bool staticMode = true;
 
 
@@ -122,7 +123,7 @@ bool staticMode = true;
 		//COORDINATE PLANE
 		float edge = 0.5;
 		GridRenderer grid(slices, edge);
-		GridRenderer gridTrans(slices, edge);
+		GridRenderer gridTrans(slices, edge, true);
 		// ##################################  USER DEFINED VECTORS & MATRICES ########################################
 		
 		//users
@@ -192,6 +193,7 @@ bool staticMode = true;
 
 		bool xzCheck = false;
 		bool yzCheck = false;
+		bool flyCheck = false;
 
 		//=================== CALCULATOR STUFF ====================
 		Calculator calculator{ &userPoints, &userColors, &userMatrices, gridTrans};
@@ -299,7 +301,7 @@ bool staticMode = true;
 
 
 					//TODO: only append once.
-					if (calculator.getAddMode()) {
+					if (calculator.getAddMode() || calculator.getMultiplyMode()) {
 						if (ImGui::Checkbox(("Add##" + std::to_string(i + 1)).c_str(), (bool*)&calculator.vectorsSelected[i])) {
 							//it changed
 							if ((bool)calculator.vectorsSelected[i]) {
@@ -351,8 +353,9 @@ bool staticMode = true;
 							currMat[3][row] * 10,
 						};
 
-						if (ImGui::InputFloat4(("row " + std::to_string(row + 1)).c_str(), rowValues)) {
-
+						if (ImGui::InputFloat4(("row " + std::to_string(row + 1) + "-" + std::to_string(i)).c_str(), rowValues)) {
+							needUpdate = true;
+							multiplyModeAndChanged = true;
 							for (int col = 0; col < 4; ++col) {
 								if (col == 3) {
 									currMat[col][row] = rowValues[col] / 10.0f;
@@ -402,24 +405,34 @@ bool staticMode = true;
 				needUpdate = true;
 				userPoints.clear();
 				userColors.clear();
-				calculator.setAddMode();
+				userMatrices.clear();
+				calculator.setAddModeOff();
 				calculator.setMultipleModeOff();
 				calculator.clearCalculationList();
 			}
 
 			if (ImGui::Checkbox("XZ", &xzCheck)) {
-				needGridUpdate = true;
 				grid.enableXZ(xzCheck);
 			};
 
-
+			ImGui::SameLine();
 			if (ImGui::Checkbox("YZ", &yzCheck)) {
-				needGridUpdate = true;
 				grid.enableYZ(yzCheck);
 			};
 
+			if (ImGui::Checkbox("Flymode", &flyCheck)) {
+				if (flyCheck) {
+					staticMode = false;
+				}
+				else {
+					staticMode = true;
+				}
+			}
+
 			ImGui::Separator();
 
+
+			//loop through all resorts
 			ImGui::BeginChild("Result");
 			std::string currResult = "[" + std::to_string(calculator.getCurrCalculation().result.x * 10) +
 				", " + std::to_string(calculator.getCurrCalculation().result.y * 10) +
@@ -452,11 +465,12 @@ bool staticMode = true;
 					arrowColor.push_back(userColors[i]);
 				}
 
-				if((equalClicked || addModeAndChanged) && calculator.getCurrCalculation().op == ADD) {
+				if((equalClicked || addModeAndChanged || multiplyModeAndChanged)) {
 					calculator.reCalculate();
 					calculator.arrowVerticesUpdate(arrowVertices, arrowColor);
 					equalClicked = false;
 					addModeAndChanged = false;
+					multiplyModeAndChanged = false;
 				}
 
 			
@@ -471,9 +485,6 @@ bool staticMode = true;
 			}
 
 			
-				grid.draw(ourShader);
-				gridTrans.draw(ourShader);
-				needGridUpdate = false;
 			
 
 			//====================================

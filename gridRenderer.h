@@ -15,6 +15,12 @@ public:
 
 	};
 
+	GridRenderer(int slices, float edge, bool isCopy)
+		: m_edge{ edge }, m_slices{ slices }, copy{ isCopy } {
+		generateGrid(slices, edge);
+		setupBuffers();
+	};
+
 	~GridRenderer() {
 		glDeleteVertexArrays(1, &VAO);
 		glDeleteBuffers(1, &VBO);
@@ -39,6 +45,7 @@ public:
 	};
 
 	void transform(glm::mat4& matrix) {
+		generateGrid(m_slices, m_edge); // to reset the grid maboi
 		for (int i = 0; i < gridLines.size(); ++i) {
 			glm::vec4 transformed = matrix * glm::vec4(gridLines[i], 1.0f);
 			gridLines[i] = glm::vec3(transformed);
@@ -63,6 +70,7 @@ private:
 
 	float m_xzEnabled = false;
 	float m_yzEnabled = false;
+	bool copy = false;
 
 	std::vector<glm::vec3> gridLines;
 	std::vector<glm::vec3> gridColors;
@@ -71,6 +79,7 @@ private:
 	void generateGrid(int slices, float edge) {
 		gridLines.clear();
 		gridColors.clear();
+
 
 		//y coordinate
 		gridLines.push_back(glm::vec3(0, edge, 0.0f));
@@ -118,9 +127,16 @@ private:
 			pos += 0.1;
 		}
 
-		for (size_t i = 0; i < gridLines.size(); ++i) {
-			gridColors.push_back(glm::vec3(1.0f, 1.0f, 1.0f)); // white color for all lines
+		if (copy) {
+			for (size_t i = 0; i < gridLines.size(); ++i) {
+				gridColors.push_back(glm::vec3(1.0f, 0.5f, 0.0f)); // white color for all lines
+			}
+		} else {
+			for (size_t i = 0; i < gridLines.size(); ++i) {
+				gridColors.push_back(glm::vec3(1.0f)); // white color for all lines
+			}
 		}
+		
 
 		
 
