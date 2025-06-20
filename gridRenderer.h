@@ -55,6 +55,10 @@ public:
 		std::cout << "successfully transformed\n";
 	}
 
+	void reset() {
+		generateGrid(m_slices, m_edge);
+		updateBuffers();
+	}
 
 
 private:

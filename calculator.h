@@ -126,6 +126,9 @@ public:
 				}
 				calculationList[n].matrixResult = result;
 				gridToTraslate.transform(result);
+
+
+
 			}
 		}
 		
@@ -176,6 +179,26 @@ public:
 				colors.push_back(glm::vec3(1.0f, 0.0f, 0.0f));
 				colors.push_back(glm::vec3(1.0f, 0.0f, 0.0f));
 			}
+			else if (calculationList[calc].op == MULTIPLY) {
+				//we want to transform all the vertices if there are any
+				//store it in a list
+
+				//so we can access the actual vector from userPoints
+
+				//create a copy 
+				glm::vec4 transformedOrigin = calculationList[calc].matrixResult * glm::vec4(0.0f, 0.0f, 0.0f ,1.0f);
+				if (!calculationList[calc].vectors.empty()) {
+					for (size_t i = 0; i < calculationList[calc].vectors.size(); ++i) {
+						glm::vec4 transformedVec =  calculationList[calc].matrixResult * glm::vec4((*calculationList[calc].vectors[i]), 1.0f);
+						vertices.push_back(glm::vec3(transformedOrigin));
+						vertices.push_back(glm::vec3(transformedVec));
+
+						colors.push_back(*calculationList[calc].vecColors[i]);
+						colors.push_back(*calculationList[calc].vecColors[i]);
+
+					}
+				}
+			}
 			
 		}
 		
@@ -208,6 +231,11 @@ public:
 
 	Calculation& getCurrCalculation() {
 		return currentCalculation;
+	}
+
+
+	std::vector<Calculation>& getCalculationList() {
+		return calculationList;
 	}
 
 private:

@@ -46,6 +46,10 @@ glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 0.3f);
 glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f); //to be added with cameraPos so that the camera looks at a new point when moved
 glm::vec3 worldUp = glm::vec3(0.0f, 0.1f, 0.0f);
 
+const glm::vec3 defaultCameraPos = glm::vec3(0.0f, 0.0f, 0.3f);
+const glm::vec3 defaultCameraFront = glm::vec3(0.0f, 0.0f, -1.0f); //to be added with cameraPos so that the camera looks at a new point when moved
+const glm::vec3 defaultWorldUp = glm::vec3(0.0f, 0.1f, 0.0f);
+
 const glm::vec3 defaultVec = glm::vec3(0.1f, 0.1f, 0.0f);
 const glm::vec3 defaultCol = glm::vec3(1.0f, 0.0f, 0.0f);
 
@@ -54,6 +58,9 @@ float lastFrame = 0.0f;
 
 float yaw = -90.0f;
 float pitch = 0.0f;
+
+const float defaultYaw = -90.0f;
+const float defaultPitch = 0.0f;
 float lastX = 400, lastY = 300;
 
 bool firstMouse = true;
@@ -135,6 +142,8 @@ bool staticMode = true;
 		std::vector<glm::vec3> arrowVertices;
 		std::vector<glm::vec3> arrowColor;
 
+
+		
 		//matrices
 		std::vector<glm::mat4> userMatrices;
 
@@ -194,6 +203,7 @@ bool staticMode = true;
 		bool xzCheck = false;
 		bool yzCheck = false;
 		bool flyCheck = false;
+		bool showTransGrid = false;
 
 		//=================== CALCULATOR STUFF ====================
 		Calculator calculator{ &userPoints, &userColors, &userMatrices, gridTrans};
@@ -241,7 +251,7 @@ bool staticMode = true;
 			ourShader.setMat4("projection", projection);
 			glLineWidth(1.0f);
 			grid.draw(ourShader);
-			gridTrans.draw(ourShader); 
+			 
 
 			glLineWidth(lineWidth);
 			glBindVertexArray(vecVAO);
@@ -284,6 +294,9 @@ bool staticMode = true;
 						if (calculator.getAddMode()) {
 							addModeAndChanged = true;
 						}
+						else if (calculator.getMultiplyMode()) {
+							multiplyModeAndChanged = true;
+						}
 
 					}
 
@@ -296,6 +309,9 @@ bool staticMode = true;
 						userColors[i] = glm::vec3(color.x, color.y, color.z);
 						if (calculator.getAddMode()) {
 							addModeAndChanged = true;
+						}
+						else if (calculator.getMultiplyMode()) {
+							multiplyModeAndChanged = true;
 						}
 					}
 
@@ -403,12 +419,22 @@ bool staticMode = true;
 			ImGui::SameLine();
 			if (ImGui::Button("c")) {
 				needUpdate = true;
+				//showTransGrid = false;
+				gridTrans.reset();
 				userPoints.clear();
 				userColors.clear();
 				userMatrices.clear();
 				calculator.setAddModeOff();
 				calculator.setMultipleModeOff();
 				calculator.clearCalculationList();
+			}
+
+			if (ImGui::Button("reset position")) {
+				cameraFront = defaultCameraFront;
+				cameraPos = defaultCameraPos;
+				worldUp = defaultWorldUp;
+				yaw = defaultYaw;
+				pitch = defaultPitch;
 			}
 
 			if (ImGui::Checkbox("XZ", &xzCheck)) {
@@ -429,16 +455,52 @@ bool staticMode = true;
 				}
 			}
 
+			if (ImGui::Checkbox("show transformed", &showTransGrid)) {
+				showTransGrid = true;
+			}
+
 			ImGui::Separator();
 
 
 			//loop through all resorts
-			ImGui::BeginChild("Result");
-			std::string currResult = "[" + std::to_string(calculator.getCurrCalculation().result.x * 10) +
-				", " + std::to_string(calculator.getCurrCalculation().result.y * 10) +
-				"," + std::to_string(calculator.getCurrCalculation().result.z * 10) + "]";
+			ImGui::BeginChild("Results");
+			for (size_t i = 0; i < calculator.getCalculationList().size(); ++i) {
+				std::string title = "Calculation Result " + std::to_string(i + 1);
 
-			ImGui::Text("%s", currResult.c_str());
+				ImGui::Text("%s", title.c_str());
+
+				if (calculator.getCalculationList()[i].op == ADD) {
+					std::string currResult = "[" + std::to_string(calculator.getCalculationList()[i].result.x * 10) +
+						", " + std::to_string(calculator.getCalculationList()[i].result.y * 10) +
+						"," + std::to_string(calculator.getCalculationList()[i].result.z * 10) + "]";
+
+					
+					ImGui::Text("%s", currResult.c_str());
+
+				}
+				else if (calculator.getCalculationList()[i].op == MULTIPLY) {
+					glm::mat4 currMatResult = calculator.getCalculationList()[i].matrixResult;
+					std::string strMatResult = "";
+
+					for (size_t row = 0; row < 4; ++row) {
+						strMatResult += "[ " + std::to_string(calculator.getCalculationList()[i].matrixResult[0][row]) + "," +
+							std::to_string(calculator.getCalculationList()[i].matrixResult[1][row]) + "," +
+							std::to_string(calculator.getCalculationList()[i].matrixResult[2][row]) + "," +
+							std::to_string(calculator.getCalculationList()[i].matrixResult[3][row] * 10) + "]\n";
+
+						
+					}
+
+					ImGui::Text("%s", strMatResult.c_str());
+				}
+				
+				
+			
+
+
+				ImGui::Separator();
+			}
+			
 			ImGui::EndChild();
 
 
@@ -485,7 +547,9 @@ bool staticMode = true;
 			}
 
 			
-			
+			if (showTransGrid) {
+				gridTrans.draw(ourShader);
+			}
 
 			//====================================
 			
