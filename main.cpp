@@ -17,21 +17,18 @@
 #include "gridRenderer.h"
 #include "calculator.h"
 
-struct richVector {
+struct planeVector {
 	glm::vec3 vector;
 	glm::vec3 color;
 };
 
-struct calcData {
-	std::vector<size_t> indeces;
-	size_t sumIndex;
-};
+
 
 
 //open gl calls this function when we resize window
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow* window);
-richVector getUserVector(std::vector<glm::vec3>& vecs, std::vector<glm::vec3>& vecColors, std::vector<glm::vec3>& arrows, std::vector<glm::vec3>& arrColors);
+planeVector getUserVector(std::vector<glm::vec3>& vecs, std::vector<glm::vec3>& vecColors, std::vector<glm::vec3>& arrows, std::vector<glm::vec3>& arrColors);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 
 	
@@ -369,11 +366,15 @@ bool staticMode = true;
 							currMat[3][row] * 10,
 						};
 
+						if (row == 3) {
+							rowValues[3] = currMat[3][row];
+						}
+
 						if (ImGui::InputFloat4(("row " + std::to_string(row + 1) + "-" + std::to_string(i)).c_str(), rowValues)) {
 							needUpdate = true;
 							multiplyModeAndChanged = true;
 							for (int col = 0; col < 4; ++col) {
-								if (col == 3) {
+								if (col == 3 && row != 3) {
 									currMat[col][row] = rowValues[col] / 10.0f;
 								}
 								else {
@@ -455,9 +456,7 @@ bool staticMode = true;
 				}
 			}
 
-			if (ImGui::Checkbox("show transformed", &showTransGrid)) {
-				showTransGrid = true;
-			}
+			ImGui::Checkbox("show transformed", &showTransGrid);
 
 			ImGui::Separator();
 
@@ -692,7 +691,7 @@ bool staticMode = true;
 
 	}
 
-	richVector getUserVector(std::vector<glm::vec3>& vecs, std::vector<glm::vec3>& vecColors, std::vector<glm::vec3>& arrows, std::vector<glm::vec3>& arrColors) {
+	planeVector getUserVector(std::vector<glm::vec3>& vecs, std::vector<glm::vec3>& vecColors, std::vector<glm::vec3>& arrows, std::vector<glm::vec3>& arrColors) {
 
 		vecs.push_back(defaultVec);
 		vecColors.push_back(defaultCol);
@@ -707,7 +706,7 @@ bool staticMode = true;
 			arrColors.push_back(vecColors[i]);
 		}
 	
-		return richVector{
+		return planeVector{
 			defaultVec,
 			defaultCol
 		};

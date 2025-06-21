@@ -11,18 +11,18 @@ C:\Users\thomas\Documents\Cpp\plane\gridRenderer.h(166,1): warning C4305: '+=': 
 C:\Users\thomas\Documents\Cpp\plane\gridRenderer.h(187,1): warning C4305: '+=': truncation from 'double' to 'float'
   (compiling source file 'main.cpp')
   
-C:\Users\thomas\Documents\Cpp\plane\main.cpp(217,20): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
-C:\Users\thomas\Documents\Cpp\plane\main.cpp(258,48): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
-C:\Users\thomas\Documents\Cpp\plane\main.cpp(486,96): warning C4267: 'argument': conversion from 'size_t' to 'glm::vec<4,float,glm::packed_highp>::length_type', possible loss of data
+C:\Users\thomas\Documents\Cpp\plane\main.cpp(214,20): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+C:\Users\thomas\Documents\Cpp\plane\main.cpp(255,48): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
+C:\Users\thomas\Documents\Cpp\plane\main.cpp(485,96): warning C4267: 'argument': conversion from 'size_t' to 'glm::vec<4,float,glm::packed_highp>::length_type', possible loss of data
+C:\Users\thomas\Documents\Cpp\plane\main.cpp(486,74): warning C4267: 'argument': conversion from 'size_t' to 'glm::vec<4,float,glm::packed_highp>::length_type', possible loss of data
 C:\Users\thomas\Documents\Cpp\plane\main.cpp(487,74): warning C4267: 'argument': conversion from 'size_t' to 'glm::vec<4,float,glm::packed_highp>::length_type', possible loss of data
 C:\Users\thomas\Documents\Cpp\plane\main.cpp(488,74): warning C4267: 'argument': conversion from 'size_t' to 'glm::vec<4,float,glm::packed_highp>::length_type', possible loss of data
-C:\Users\thomas\Documents\Cpp\plane\main.cpp(489,74): warning C4267: 'argument': conversion from 'size_t' to 'glm::vec<4,float,glm::packed_highp>::length_type', possible loss of data
+C:\Users\thomas\Documents\Cpp\plane\main.cpp(661,13): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
 C:\Users\thomas\Documents\Cpp\plane\main.cpp(662,13): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
-C:\Users\thomas\Documents\Cpp\plane\main.cpp(663,13): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+C:\Users\thomas\Documents\Cpp\plane\main.cpp(666,13): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
 C:\Users\thomas\Documents\Cpp\plane\main.cpp(667,13): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
-C:\Users\thomas\Documents\Cpp\plane\main.cpp(668,13): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+C:\Users\thomas\Documents\Cpp\plane\main.cpp(669,12): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
 C:\Users\thomas\Documents\Cpp\plane\main.cpp(670,12): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
-C:\Users\thomas\Documents\Cpp\plane\main.cpp(671,12): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+C:\Users\thomas\Documents\Cpp\plane\main.cpp(688,12): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
 C:\Users\thomas\Documents\Cpp\plane\main.cpp(689,12): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
-C:\Users\thomas\Documents\Cpp\plane\main.cpp(690,12): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
   plane.vcxproj -> C:\Users\thomas\Documents\Cpp\plane\x64\Debug\plane.exe

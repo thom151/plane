@@ -257,9 +257,11 @@ private:
 
 	void clearCurrent() {
 		std::cout << "current";
-		currentCalculation.result = glm::vec3(0.0f, 0.0f, 0.0f);
+		currentCalculation.result = glm::vec3(0.0f);
+		currentCalculation.matrixResult = glm::mat4(1.0f);
 		currentCalculation.vectors.clear();
 		currentCalculation.vecColors.clear();
+		currentCalculation.matrices.clear();
 		currentCalculation.op = NOOP;
 		equalPending = false;
 		addMode = false;
