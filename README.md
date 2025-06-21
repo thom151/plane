@@ -1,6 +1,6 @@
 # 🧮 3D Vector & Matrix Visualizer
 
-This OpenGL-based application provides an interactive 3D environment for visualizing vector addition and matrix transformations. Users can define vectors and 4×4 matrices, view real-time vector addition, and apply transformations like **rotation**, **scaling**, **shearing**, and **translation** to both vectors and entire coordinate grids.
+This OpenGL-based application provides an interactive 3D environment for visualizing vector addition and matrix transformations. Users can define vectors and 4×4 matrices, view real-time vector addition, and apply transformations to all vectors and entire coordinate grids.
 
 ## 🚀 Features
 
@@ -30,6 +30,7 @@ This OpenGL-based application provides an interactive 3D environment for visuali
 ---
 
 ## 💾 Screenshots
+You can watch a quick demo [here](https://youtu.be/dWO648q-9sE).
 **Creating Vectors**
 ![Vectors](pictures/vectors.png)
 
