@@ -31,14 +31,14 @@ This OpenGL-based application provides an interactive 3D environment for visuali
 
 ## 💾 Screenshots
 **Creating Vectors**
-![Vectors](vectors.png)
+![Vectors](pictures/vectors.png)
 
 **Adding Vectors:**
 Adding multiple vectors & traces the path.
-![Adding](add.png)
+![Adding](pictures/add.png)
 
 **Applying Matrices**
-![Multiply ](multiply.png)
+![Multiply ](pictures/multiply.png)
 
 ---
 
